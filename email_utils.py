@@ -1,42 +1,33 @@
-# Weekly reminder emails using yagmail
 import smtplib
-from email.message import EmailMessage
-import streamlit as st
-from database import get_tasks_by_user
+import ssl
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 
-EMAIL_SENDER = "your_email@example.com"
-EMAIL_PASSWORD = "your_app_password"
-
-def send_email_reminder():
-    username = st.session_state.get("username", None)
-    user_email = st.session_state.get("email", None)
-
-    if not username or not user_email:
-        st.warning("Please log in to send reminders.")
-        return
-
-    tasks = get_tasks_by_user(username)
-    if not tasks:
-        st.warning("No tasks to include in the email.")
-        return
-
-    message = EmailMessage()
-    message["Subject"] = "Study Planner Task Reminder"
-    message["From"] = EMAIL_SENDER
-    message["To"] = user_email
-
-    body = f"Hi {username},\n\nHere are your tasks:\n\n"
-    for task in tasks:
-        task_name, due_date, status = task[2], task[3], task[4]
-        body += f"- {task_name} (Due: {due_date}, Status: {status})\n"
-
-    body += "\nBest of luck with your studies!\n\nStudy Planner App"
-    message.set_content(body)
+# Function to send an email reminder
+def send_email_reminder(to_email, subject, message):
+    from_email = "your_email@example.com"  # Replace with your email
+    password = "your_email_password"       # Replace with your email password
 
     try:
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
-            smtp.login(EMAIL_SENDER, EMAIL_PASSWORD)
-            smtp.send_message(message)
-        st.success("Email reminder sent successfully!")
+        # Set up the server and send the email
+        smtp_server = "smtp.gmail.com"
+        port = 465  # For SSL
+        context = ssl.create_default_context()
+
+        # Create the email message
+        msg = MIMEMultipart()
+        msg['From'] = from_email
+        msg['To'] = to_email
+        msg['Subject'] = subject
+
+        msg.attach(MIMEText(message, "plain"))
+
+        # Connect to the server and send the email
+        with smtplib.SMTP_SSL(smtp_server, port, context=context) as server:
+            server.login(from_email, password)
+            server.sendmail(from_email, to_email, msg.as_string())
+        
+        return True
     except Exception as e:
-        st.error(f"Failed to send email: {e}")
+        print(f"Error sending email: {e}")
+        return False
