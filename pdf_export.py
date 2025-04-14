@@ -2,35 +2,29 @@ import streamlit as st
 from fpdf import FPDF
 from database import get_tasks_for_user
 
-def export_pdf_page():
-    st.title("📤 Export Tasks to PDF")
 
-    username = st.session_state.get("username", None)
-    if not username:
-        st.warning("⚠️ Please log in to export your tasks.")
-        return
-
+def generate_pdf(username):
     tasks = get_tasks_for_user(username)
-    if not tasks:
-        st.info("ℹ️ You have no tasks to export.")
-        return
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", size=12)
+    pdf.cell(200, 10, txt=f"Study Plan for {username}", ln=True, align="C")
 
-    if st.button("Generate PDF"):
-        pdf = FPDF()
-        pdf.add_page()
-        pdf.set_font("Arial", size=12)
+    for task in tasks:
+        title, description, due_date, status = task[2], task[3], task[4], task[5]
+        pdf.multi_cell(0, 10, txt=f"Task: {title}\nDescription: {description}\nDue Date: {due_date}\nStatus: {status}\n\n")
 
-        pdf.cell(200, 10, txt=f"Study Tasks for {username}", ln=True, align="C")
-        pdf.ln(10)
+    output_path = f"{username}_study_plan.pdf"
+    pdf.output(output_path)
+    return output_path
 
-        for task in tasks:
-            task_id, task_name, due_date, status = task
-            line = f"📌 Task: {task_name} | 📅 Due: {due_date} | 🔄 Status: {status}"
-            pdf.multi_cell(0, 10, txt=line)
 
-        filename = f"{username}_tasks.pdf"
-        pdf.output(filename)
-
-        st.success("✅ PDF generated successfully.")
-        with open(filename, "rb") as f:
-            st.download_button("📥 Download PDF", f, file_name=filename, mime="application/pdf")
+def pdf_export_tab():
+    st.title("📄 Export Tasks to PDF")
+    if "username" in st.session_state:
+        if st.button("Generate and Download PDF"):
+            pdf_file = generate_pdf(st.session_state["username"])
+            with open(pdf_file, "rb") as f:
+                st.download_button(label="Download PDF", data=f, file_name=pdf_file, mime="application/pdf")
+    else:
+        st.warning("Please log in to export your tasks.")

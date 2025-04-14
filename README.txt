@@ -1,51 +1,17 @@
-# Study Planner App - Full Version
+Study Planner App
+==================
+A Streamlit-based planner to manage study tasks, reminders, summaries, and progress analytics.
 
-## 🔧 How to Set Up (Windows + VS Code)
+**Features**:
+- User authentication
+- Task manager with deadline and status
+- Email reminders
+- Google Calendar sync (mock)
+- Analytics dashboard
+- PDF export
+- Study plan generator
 
-1. **Extract this ZIP** into: C:\Users\<YourName>\Documents\study_planner_app_full
-2. **Open in VS Code**
-   - File > Open Folder > Select 'study_planner_app_full'
-3. **Open Terminal in VS Code**
-   - Terminal > New Terminal
-
-## 🐍 Create & Activate Virtual Environment
-
-```powershell
-python -m venv venv
-.env\Scriptsctivate
+Run with:
 ```
-
-If script error occurs:
-```powershell
-Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
+streamlit run app.py
 ```
-
-## 📦 Install Requirements
-
-```powershell
-pip install -r requirements.txt
-```
-
-## 🧾 Register New User
-
-```powershell
-python -m streamlit run signup.py
-```
-
-## 🚀 Launch Dashboard
-
-```powershell
-python -m streamlit run app.py
-```
-
-## ✅ Features Included
-
-- Login/Signup with roles (Student/Admin)
-- Task management with deadlines
-- Personalized plans for:
-  - Competitive exams
-  - College or school syllabus
-- Weekly email reminders
-- Export schedule to PDF
-- Google Calendar integration
-

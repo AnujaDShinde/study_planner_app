@@ -1,44 +1,56 @@
 import streamlit as st
-from datetime import date
 from database import add_task, get_tasks_for_user, update_task_status
+from utils import get_status_color
+from datetime import date
 
 def task_deadline_page():
-    st.title("📅 Task Deadlines")
+    st.title("📅 Your Study Dashboard")
 
     if "username" not in st.session_state:
-        st.error("Please log in to access this section.")
+        st.warning("Please log in to continue.")
         return
 
     username = st.session_state["username"]
 
-    # --- Add Task Form ---
-    with st.form("add_task_form"):
-        task_name = st.text_input("Enter Task Name")
-        deadline = st.date_input("Select Deadline", min_value=date.today())
-        submitted = st.form_submit_button("Add Task")
+    st.subheader("➕ Add a New Task")
+    task = st.text_input("Task")
+    deadline = st.date_input("Deadline", min_value=date.today())
+    status = st.selectbox("Status", ["Pending", "In Progress", "Completed"])
 
-        if submitted and task_name:
-            add_task(username, task_name, str(deadline))
-            st.success(f"✅ Task '{task_name}' added!")
+    if st.button("Add Task"):
+        if task:
+            add_task(username, task, str(deadline), status)
+            st.success("Task added successfully!")
+        else:
+            st.error("Please enter a task name.")
 
-    # --- View Tasks ---
-    st.subheader("🗂️ Your Tasks")
+    st.subheader("📋 Your Tasks")
     tasks = get_tasks_for_user(username)
-
     if not tasks:
-        st.info("No tasks found. Add your first task above.")
-        return
-
-    status_options = ["Pending", "In Progress", "Completed"]
-
-    for task in tasks:
-        task_id, task_name, due_date, status = task
-        col1, col2, col3 = st.columns([3, 2, 2])
-        with col1:
-            st.markdown(f"**📌 {task_name}**  \n📅 Due: `{due_date}`")
-        with col2:
-            new_status = st.selectbox("Status", status_options, index=status_options.index(status), key=task_id)
-        with col3:
-            if new_status != status:
+        st.info("No tasks yet. Start by adding one!")
+    else:
+        for t in tasks:
+            task_id, task, deadline, status = t
+            st.markdown(
+                f"""
+                <div style='border: 1px solid #ccc; padding: 10px; margin-bottom: 10px;
+                            border-radius: 10px; background-color: {get_status_color(status)}'>
+                    <b>Task:</b> {task}<br>
+                    <b>Deadline:</b> {deadline}<br>
+                    <b>Status:</b> 
+                    <form method='post'>
+                        <select name='status_{task_id}' onchange='this.form.submit()'>
+                            <option {"selected" if status == "Pending" else ""}>Pending</option>
+                            <option {"selected" if status == "In Progress" else ""}>In Progress</option>
+                            <option {"selected" if status == "Completed" else ""}>Completed</option>
+                        </select>
+                    </form>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+            new_status = st.selectbox("Update Status", ["Pending", "In Progress", "Completed"], index=["Pending", "In Progress", "Completed"].index(status), key=f"status_{task_id}")
+            if st.button(f"Update Status for Task {task_id}"):
                 update_task_status(task_id, new_status)
-                st.success(f"✅ Status updated to '{new_status}'")
+                st.success("Status updated!")
+                st.experimental_rerun()

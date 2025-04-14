@@ -1,33 +1,61 @@
 import smtplib
-import ssl
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from database import get_tasks_by_username, get_user_email
+from datetime import datetime, timedelta
 
-# Function to send an email reminder
-def send_email_reminder(to_email, subject, message):
-    from_email = "your_email@example.com"  # Replace with your email
-    password = "your_email_password"       # Replace with your email password
+EMAIL_HOST = "smtp.gmail.com"
+EMAIL_PORT = 587
+EMAIL_ADDRESS = "shindeanujadr01@gmail.com"
+EMAIL_PASSWORD = "Anuja@Shinde01"
 
+
+def send_email(recipient, subject, body):
     try:
-        # Set up the server and send the email
-        smtp_server = "smtp.gmail.com"
-        port = 465  # For SSL
-        context = ssl.create_default_context()
+        message = MIMEMultipart()
+        message["From"] = EMAIL_ADDRESS
+        message["To"] = recipient
+        message["Subject"] = subject
+        message.attach(MIMEText(body, "html"))
 
-        # Create the email message
-        msg = MIMEMultipart()
-        msg['From'] = from_email
-        msg['To'] = to_email
-        msg['Subject'] = subject
+        server = smtplib.SMTP(EMAIL_HOST, EMAIL_PORT)
+        server.starttls()
+        server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
+        server.send_message(message)
+        server.quit()
 
-        msg.attach(MIMEText(message, "plain"))
-
-        # Connect to the server and send the email
-        with smtplib.SMTP_SSL(smtp_server, port, context=context) as server:
-            server.login(from_email, password)
-            server.sendmail(from_email, to_email, msg.as_string())
-        
-        return True
     except Exception as e:
-        print(f"Error sending email: {e}")
-        return False
+        print(f"❌ Failed to send email: {e}")
+
+
+def send_reminder_email(username):
+    user_email = get_user_email(username)
+    tasks = get_tasks_by_username(username)
+    today = datetime.today().date()
+    upcoming = [t for t in tasks if datetime.strptime(t[3], "%Y-%m-%d").date() == today]
+
+    if upcoming:
+        task_list = "".join([f"<li>{t[2]} - Due: {t[3]} (Status: {t[4]})</li>" for t in upcoming])
+        body = f"""
+        <h3>📌 Today's Task Reminder</h3>
+        <ul>{task_list}</ul>
+        <p>Stay focused and good luck! 💪</p>
+        """
+        send_email(user_email, "📚 Study Planner - Today's Tasks", body)
+
+
+def send_weekly_summary(username):
+    user_email = get_user_email(username)
+    tasks = get_tasks_by_username(username)
+    one_week = datetime.today() + timedelta(days=7)
+    upcoming = [t for t in tasks if datetime.strptime(t[3], "%Y-%m-%d").date() <= one_week.date()]
+
+    if upcoming:
+        task_list = "".join([f"<li>{t[2]} - Due: {t[3]} (Status: {t[4]})</li>" for t in upcoming])
+        body = f"""
+        <h3>📅 Weekly Study Summary</h3>
+        <p>Here are your upcoming tasks for the week:</p>
+        <ul>{task_list}</ul>
+        <p>Stay consistent and keep learning! 🚀</p>
+        """
+        send_email(user_email, "📈 Study Planner - Weekly Summary", body)

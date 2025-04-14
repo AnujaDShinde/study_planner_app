@@ -1,21 +1,37 @@
-# Google Calendar integration logic
+import os
+from datetime import datetime, timedelta
+from google.oauth2 import service_account
+from googleapiclient.discovery import build
+from database import get_tasks_for_user
 import streamlit as st
-from database import get_tasks_by_user
 
-def export_to_google_calendar():
-    username = st.session_state.get("username", None)
-    if not username:
-        st.warning("Please log in to export tasks to Google Calendar.")
-        return
+SCOPES = ['https://www.googleapis.com/auth/calendar']
+SERVICE_ACCOUNT_FILE = 'credentials.json'  # Place your service account file in the project root
 
-    tasks = get_tasks_by_user(username)
-    if not tasks:
-        st.warning("No tasks found to export.")
-        return
+credentials = service_account.Credentials.from_service_account_file(
+    SERVICE_ACCOUNT_FILE, scopes=SCOPES)
+
+def sync_tasks_to_calendar(username):
+    service = build('calendar', 'v3', credentials=credentials)
+    tasks = get_tasks_for_user(username)
 
     for task in tasks:
-        task_name, due_date, _ = task[2], task[3], task[4]
-        # You can replace the line below with actual Google Calendar API integration
-        st.write(f"Pretending to export: {task_name} due on {due_date}")
+        title, description, due_date_str, status = task[2], task[3], task[4], task[5]
+        due_date = datetime.strptime(due_date_str, "%Y-%m-%d")
+        event = {
+            'summary': title,
+            'description': description,
+            'start': {'dateTime': due_date.isoformat() + 'T09:00:00', 'timeZone': 'Asia/Kolkata'},
+            'end': {'dateTime': (due_date + timedelta(hours=1)).isoformat() + 'T10:00:00', 'timeZone': 'Asia/Kolkata'},
+        }
+        service.events().insert(calendarId='primary', body=event).execute()
 
-    st.success("Tasks exported to Google Calendar (demo mode).")
+
+def calendar_sync_tab():
+    st.title("📅 Sync with Google Calendar")
+    if "username" in st.session_state:
+        if st.button("Sync Tasks to Google Calendar"):
+            sync_tasks_to_calendar(st.session_state["username"])
+            st.success("Tasks synced to Google Calendar successfully!")
+    else:
+        st.warning("Please log in to sync tasks.")
